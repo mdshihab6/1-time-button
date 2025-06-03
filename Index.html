@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Download Buttons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .download-button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: none;
+    }
+    .download-button.visible {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <h2>Download Links</h2>
+  <div class="button-container" id="buttonContainer"></div>
+
+  <script>
+    const links = [
+      "https://www.facebook.com",
+      "fb",
+      "#",
+      "#",
+      "#",
+      "#",
+      "#",
+      "#",
+      "https://www.reddit.com",
+      "https://www.tumblr.com",
+      "https://www.quora.com",
+      "https://web.telegram.org",
+      "https://www.discord.com",
+      "https://web.whatsapp.com",
+      "https://www.vimeo.com",
+      "https://www.behance.net",
+      "#",
+      "#",
+      "#",
+      "#",
+    ];
+
+    const container = document.getElementById("buttonContainer");
+    const buttons = [];
+    let visibleCount = 0;
+
+    function updateVisibleButtons() {
+      visibleCount = 0;
+      for (let i = 0; i < links.length; i++) {
+        const isHidden = localStorage.getItem(`btn${i}_hidden`) === "true";
+        if (!isHidden && visibleCount < 4) {
+          buttons[i].classList.add("visible");
+          visibleCount++;
+        }
+      }
+    }
+
+    links.forEach((link, index) => {
+      const btn = document.createElement("button");
+      btn.textContent = `Download Link ${index + 1}`;
+      btn.className = "download-button";
+      btn.dataset.index = index;
+
+      const storedClick = parseInt(localStorage.getItem(`btn${index}_clicks`)) || 0;
+      if (storedClick >= 5) {
+        localStorage.setItem(`btn${index}_hidden`, "true");
+        btn.disabled = true;
+        btn.style.display = "none";
+      }
+
+      btn.onclick = function () {
+        let count = parseInt(localStorage.getItem(`btn${index}_clicks`)) || 0;
+        count++;
+        localStorage.setItem(`btn${index}_clicks`, count);
+
+        if (count >= 5) {
+          localStorage.setItem(`btn${index}_hidden`, "true");
+          this.classList.remove("visible");
+          this.disabled = true;
+          this.style.display = "none";
+          for (let i = 0; i < links.length; i++) {
+            if (localStorage.getItem(`btn${i}_hidden`) !== "true" && !buttons[i].classList.contains("visible")) {
+              buttons[i].classList.add("visible");
+              break;
+            }
+          }
+        } else {
+          if (link !== "#") {
+            window.open(link, '_blank');
+          }
+        }
+      };
+
+      container.appendChild(btn);
+      buttons.push(btn);
+    });
+
+    updateVisibleButtons();
+  </script>
+</body>
+</html>
