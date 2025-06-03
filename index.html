@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Download Buttons</title>
   <style>
     body {
@@ -28,15 +28,18 @@
       display: inline-block;
     }
   </style>
+
+  <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
   <h2>Download Links</h2>
   <div class="button-container" id="buttonContainer"></div>
 
   <script>
-   
+    // ✅ Your Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyApM7Cf4yDpoA08XeNdHzizZ7jLopL6XO4",
       authDomain: "mywebproject-7011c.firebaseapp.com",
@@ -46,6 +49,7 @@
       appId: "1:188224382599:web:5abc447c6cc9fbe4917a22"
     };
 
+    // ✅ Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -76,8 +80,14 @@
     const buttons = [];
     let visibleCount = 4;
 
-    const userId = crypto.randomUUID(); // Or use your own UID logic
+    // 🔐 Simple UID for this user/device
+    const userId = localStorage.getItem("userId") || (() => {
+      const newId = crypto.randomUUID();
+      localStorage.setItem("userId", newId);
+      return newId;
+    })();
 
+    // ✅ Get previous clicks from Firestore
     db.collection("downloadClicks").doc(userId).get().then(doc => {
       const data = doc.exists ? doc.data() : {};
 
@@ -97,17 +107,20 @@
         btn.onclick = function () {
           let count = parseInt(this.dataset.clickCount);
           count++;
-          this.dataset.clickCount = count;
 
+          // Update click in Firestore
           db.collection("downloadClicks").doc(userId).set({
             [`link${index}`]: count
           }, { merge: true });
+
+          this.dataset.clickCount = count;
 
           if (count >= 5) {
             this.classList.remove("visible");
             this.disabled = true;
             this.style.display = "none";
 
+            // Show next hidden button if available
             for (let i = 0; i < buttons.length; i++) {
               if (!buttons[i].classList.contains("visible") && parseInt(buttons[i].dataset.clickCount) < 5) {
                 buttons[i].classList.add("visible");
