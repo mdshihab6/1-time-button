@@ -28,6 +28,7 @@
       display: inline-block;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 </head>
 <body>
   <h2>Download Links</h2>
@@ -36,13 +37,13 @@
   <script>
     const links = [
       "https://www.facebook.com",
-      "fb",
-      "#",
-      "#",
-      "#",
-      "#",
-      "#",
-      "#",
+      "https://www.instagram.com",
+      "https://www.twitter.com",
+      "https://www.linkedin.com",
+      "https://www.youtube.com",
+      "https://www.tiktok.com",
+      "https://www.pinterest.com",
+      "https://www.snapchat.com",
       "https://www.reddit.com",
       "https://www.tumblr.com",
       "https://www.quora.com",
@@ -51,68 +52,66 @@
       "https://web.whatsapp.com",
       "https://www.vimeo.com",
       "https://www.behance.net",
-      "#",
-      "#",
-      "#",
-      "#",
+      "https://www.dribbble.com",
+      "https://www.clubhouse.com",
+      "https://www.medium.com",
+      "https://mix.com",
     ];
 
     const container = document.getElementById("buttonContainer");
     const buttons = [];
-    let visibleCount = 0;
 
-    function updateVisibleButtons() {
-      visibleCount = 0;
+    async function initButtons() {
+      let visibleCount = 0;
       for (let i = 0; i < links.length; i++) {
-        const isHidden = localStorage.getItem(`btn${i}_hidden`) === "true";
+        const btn = document.createElement("button");
+        btn.textContent = `Download Link ${i + 1}`;
+        btn.className = "download-button";
+        btn.dataset.index = i;
+
+        const clickCount = (await localforage.getItem(`btn${i}_clicks`)) || 0;
+        const isHidden = (await localforage.getItem(`btn${i}_hidden`)) === true;
+
         if (!isHidden && visibleCount < 4) {
-          buttons[i].classList.add("visible");
+          btn.classList.add("visible");
           visibleCount++;
         }
+
+        if (isHidden || clickCount >= 5) {
+          btn.disabled = true;
+          btn.style.display = "none";
+        }
+
+        btn.onclick = async function () {
+          let count = (await localforage.getItem(`btn${i}_clicks`)) || 0;
+          count++;
+          await localforage.setItem(`btn${i}_clicks`, count);
+
+          if (count >= 5) {
+            await localforage.setItem(`btn${i}_hidden`, true);
+            this.classList.remove("visible");
+            this.disabled = true;
+            this.style.display = "none";
+
+            // Show next hidden button
+            for (let j = 0; j < buttons.length; j++) {
+              const hidden = (await localforage.getItem(`btn${j}_hidden`)) === true;
+              if (!buttons[j].classList.contains("visible") && !hidden) {
+                buttons[j].classList.add("visible");
+                break;
+              }
+            }
+          } else {
+            window.open(links[i], '_blank');
+          }
+        };
+
+        container.appendChild(btn);
+        buttons.push(btn);
       }
     }
 
-    links.forEach((link, index) => {
-      const btn = document.createElement("button");
-      btn.textContent = `Download Link ${index + 1}`;
-      btn.className = "download-button";
-      btn.dataset.index = index;
-
-      const storedClick = parseInt(localStorage.getItem(`btn${index}_clicks`)) || 0;
-      if (storedClick >= 5) {
-        localStorage.setItem(`btn${index}_hidden`, "true");
-        btn.disabled = true;
-        btn.style.display = "none";
-      }
-
-      btn.onclick = function () {
-        let count = parseInt(localStorage.getItem(`btn${index}_clicks`)) || 0;
-        count++;
-        localStorage.setItem(`btn${index}_clicks`, count);
-
-        if (count >= 5) {
-          localStorage.setItem(`btn${index}_hidden`, "true");
-          this.classList.remove("visible");
-          this.disabled = true;
-          this.style.display = "none";
-          for (let i = 0; i < links.length; i++) {
-            if (localStorage.getItem(`btn${i}_hidden`) !== "true" && !buttons[i].classList.contains("visible")) {
-              buttons[i].classList.add("visible");
-              break;
-            }
-          }
-        } else {
-          if (link !== "#") {
-            window.open(link, '_blank');
-          }
-        }
-      };
-
-      container.appendChild(btn);
-      buttons.push(btn);
-    });
-
-    updateVisibleButtons();
+    initButtons();
   </script>
 </body>
 </html>
