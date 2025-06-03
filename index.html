@@ -1,141 +1,305 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Download Buttons</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blogy fry - ব্লগ হোম পেজ</title>
   <style>
+    /* বেসিক রিসেট */
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
+      margin: 0; padding: 0;
+      background: #f9f9f9;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .button-container {
+    /* হেডার স্টাইল */
+    header {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .download-button {
-      padding: 10px 20px;
-      background-color: #007bff;
+      justify-content: space-between;
+      align-items: center;
+      background: #007bff;
       color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      display: none;
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    .download-button.visible {
+    .menu-icon, .search-icon {
+      cursor: pointer;
+      font-size: 24px;
+      user-select: none;
+    }
+    .site-name {
+      font-size: 20px;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    /* সার্চ ইনপুট হেডারের ডান পাশে */
+    #searchBox {
+      display: none;
+      padding: 6px 8px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: none;
+      outline: none;
+      width: 180px;
+      transition: all 0.3s ease;
+    }
+    #searchBox.show {
       display: inline-block;
     }
-  </style>
 
-  <!-- Firebase CDN -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    /* ব্লগ পোস্ট কার্ড */
+    .blog-post {
+      background: white;
+      padding: 15px;
+      margin: 20px 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .blog-post:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .blog-post img {
+      max-width: 100%;
+      border-radius: 5px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin: 10px 0 5px;
+    }
+    .keywords {
+      color: #555;
+      font-style: italic;
+    }
+    .read-more {
+      display: inline-block;
+      margin-top: 10px;
+      background: #007bff;
+      color: white;
+      padding: 8px 12px;
+      text-decoration: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* যখন সার্চ ইনপুট দেখাবে, সার্চ আইকন লুকাবে */
+    .hide {
+      display: none !important;
+    }
+
+    /* Modal স্টাইল */
+    #modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0; top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+    }
+    #modalContent {
+      background: white;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      position: relative;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+    #modalClose {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
+      user-select: none;
+    }
+    #modalClose:hover {
+      color: #007bff;
+    }
+    #modalContent img {
+      max-width: 100%;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    #modalContent h2 {
+      margin-top: 0;
+    }
+    #modalContent .keywords {
+      font-style: italic;
+      color: #666;
+      margin-bottom: 15px;
+    }
+    #modalContent a.read-more {
+      background: #007bff;
+      color: white;
+      padding: 10px 15px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    #modalContent a.read-more:hover {
+      background: #0056b3;
+    }
+  </style>
 </head>
 <body>
 
-  <h2>Download Links</h2>
-  <div class="button-container" id="buttonContainer"></div>
+<header>
+  <div class="menu-icon" title="Menu">&#9776;</div>
+  <div class="site-name">Blogy fry</div>
+  <input type="text" id="searchBox" placeholder="খুঁজুন..." />
+  <div class="search-icon" title="Search">&#128269;</div>
+</header>
 
-  <script>
-    // ✅ Your Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyApM7Cf4yDpoA08XeNdHzizZ7jLopL6XO4",
-      authDomain: "mywebproject-7011c.firebaseapp.com",
-      projectId: "mywebproject-7011c",
-      storageBucket: "mywebproject-7011c.firebasestorage.app",
-      messagingSenderId: "188224382599",
-      appId: "1:188224382599:web:5abc447c6cc9fbe4917a22"
-    };
+<div id="blogPosts"></div>
 
-    // ✅ Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+<!-- Modal -->
+<div id="modal">
+  <div id="modalContent">
+    <span id="modalClose" title="Close">&times;</span>
+    <img id="modalImage" src="" alt="Blog Image" />
+    <h2 id="modalTitle"></h2>
+    <div class="keywords" id="modalKeywords"></div>
+    <a id="modalReadMore" href="#" target="_blank" class="read-more">পড়ুন</a>
+  </div>
+</div>
 
-    const links = [
-      "https://www.facebook.com",
-      "https://www.instagram.com",
-      "https://www.twitter.com",
-      "https://www.linkedin.com",
-      "https://www.youtube.com",
-      "https://www.tiktok.com",
-      "https://www.pinterest.com",
-      "https://www.snapchat.com",
-      "https://www.reddit.com",
-      "https://www.tumblr.com",
-      "https://www.quora.com",
-      "https://web.telegram.org",
-      "https://www.discord.com",
-      "https://web.whatsapp.com",
-      "https://www.vimeo.com",
-      "https://www.behance.net",
-      "https://www.dribbble.com",
-      "https://www.clubhouse.com",
-      "https://www.medium.com",
-      "https://mix.com"
-    ];
+<script>
+  const searchIcon = document.querySelector('.search-icon');
+  const searchBox = document.getElementById('searchBox');
+  const blogPostsContainer = document.getElementById('blogPosts');
 
-    const container = document.getElementById("buttonContainer");
-    const buttons = [];
-    let visibleCount = 4;
+  const modal = document.getElementById('modal');
+  const modalClose = document.getElementById('modalClose');
+  const modalImage = document.getElementById('modalImage');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalKeywords = document.getElementById('modalKeywords');
+  const modalReadMore = document.getElementById('modalReadMore');
 
-    // 🔐 Simple UID for this user/device
-    const userId = localStorage.getItem("userId") || (() => {
-      const newId = crypto.randomUUID();
-      localStorage.setItem("userId", newId);
-      return newId;
-    })();
+  // পোস্ট লোড
+  function loadPosts() {
+    return JSON.parse(localStorage.getItem('blogPosts')) || [];
+  }
 
-    // ✅ Get previous clicks from Firestore
-    db.collection("downloadClicks").doc(userId).get().then(doc => {
-      const data = doc.exists ? doc.data() : {};
+  // ব্লগ পোস্ট দেখানো
+  function displayBlogPosts(posts) {
+    blogPostsContainer.innerHTML = '';
 
-      links.forEach((link, index) => {
-        const btn = document.createElement("button");
-        btn.textContent = `Download Link ${index + 1}`;
-        btn.className = "download-button";
+    if(posts.length === 0) {
+      blogPostsContainer.innerHTML = '<p style="padding:20px; text-align:center;">কোনো পোস্ট পাওয়া যায়নি।</p>';
+      return;
+    }
 
-        let clickCount = data[`link${index}`] || 0;
-        btn.dataset.clickCount = clickCount;
+    posts.forEach((post, index) => {
+      const postEl = document.createElement('div');
+      postEl.className = 'blog-post';
 
-        if (clickCount < 5 && visibleCount > 0) {
-          btn.classList.add("visible");
-          visibleCount--;
-        }
+      postEl.innerHTML = `
+        <img src="${post.imageUrl}" alt="${post.title}" />
+        <h2>${post.title}</h2>
+        <div class="keywords">${post.keywords}</div>
+        <a href="${post.link ? post.link : '#'}" class="read-more">পড়ুন</a>
+      `;
 
-        btn.onclick = function () {
-          let count = parseInt(this.dataset.clickCount);
-          count++;
-
-          // Update click in Firestore
-          db.collection("downloadClicks").doc(userId).set({
-            [`link${index}`]: count
-          }, { merge: true });
-
-          this.dataset.clickCount = count;
-
-          if (count >= 5) {
-            this.classList.remove("visible");
-            this.disabled = true;
-            this.style.display = "none";
-
-            // Show next hidden button if available
-            for (let i = 0; i < buttons.length; i++) {
-              if (!buttons[i].classList.contains("visible") && parseInt(buttons[i].dataset.clickCount) < 5) {
-                buttons[i].classList.add("visible");
-                break;
-              }
-            }
-          } else {
-            window.open(link, '_blank');
-          }
-        };
-
-        container.appendChild(btn);
-        buttons.push(btn);
+      // ক্লিক ইভেন্ট যোগ করো — ছবিতে, টাইটেলে, পড়ুন বাটনে
+      postEl.querySelector('img').addEventListener('click', () => openModal(post));
+      postEl.querySelector('h2').addEventListener('click', () => openModal(post));
+      postEl.querySelector('a.read-more').addEventListener('click', e => {
+        e.preventDefault();
+        openModal(post);
       });
+
+      blogPostsContainer.appendChild(postEl);
     });
-  </script>
+  }
+
+  // মডাল খোলা
+  function openModal(post) {
+    modalImage.src = post.imageUrl;
+    modalImage.alt = post.title;
+    modalTitle.textContent = post.title;
+    modalKeywords.textContent = post.keywords;
+    modalReadMore.href = post.link ? post.link : '#';
+
+    modal.style.display = 'block';
+  }
+
+  // মডাল বন্ধ
+  modalClose.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  // মডালের বাইরে ক্লিক করলে বন্ধ হবে
+  window.addEventListener('click', (e) => {
+    if(e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+  // শুরুতে সব পোস্ট দেখাও
+  let allPosts = loadPosts();
+  displayBlogPosts(allPosts);
+
+  // সার্চ বক্স দেখানো/লুকানো
+  searchIcon.addEventListener('click', () => {
+    if(searchBox.classList.contains('show')) {
+      searchBox.classList.remove('show');
+      searchIcon.classList.remove('hide');
+      searchBox.value = '';
+      displayBlogPosts(allPosts);
+      searchBox.blur();
+    } else {
+      searchBox.classList.add('show');
+      searchIcon.classList.add('hide');
+      searchBox.focus();
+    }
+  });
+
+  // সার্চ ইনপুট টাইপ করার সময় ফিল্টার কর
+  searchBox.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+
+    if(query === '') {
+      displayBlogPosts(allPosts);
+      return;
+    }
+
+    const filtered = allPosts.filter(post => {
+      return post.title.toLowerCase().includes(query) || post.keywords.toLowerCase().includes(query);
+    });
+
+    displayBlogPosts(filtered);
+  });
+
+  // ইনপুট থেকে বের হলে সার্চ বক্স বন্ধ (ঐচ্ছিক)
+  searchBox.addEventListener('blur', () => {
+    if(searchBox.value.trim() === '') {
+      searchBox.classList.remove('show');
+      searchIcon.classList.remove('hide');
+    }
+  });
+</script>
+
 </body>
 </html>
