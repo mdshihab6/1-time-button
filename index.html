@@ -28,13 +28,27 @@
       display: inline-block;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <h2>Download Links</h2>
   <div class="button-container" id="buttonContainer"></div>
 
   <script>
+   
+    const firebaseConfig = {
+      apiKey: "AIzaSyApM7Cf4yDpoA08XeNdHzizZ7jLopL6XO4",
+      authDomain: "mywebproject-7011c.firebaseapp.com",
+      projectId: "mywebproject-7011c",
+      storageBucket: "mywebproject-7011c.firebasestorage.app",
+      messagingSenderId: "188224382599",
+      appId: "1:188224382599:web:5abc447c6cc9fbe4917a22"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const links = [
       "https://www.facebook.com",
       "https://www.instagram.com",
@@ -55,63 +69,60 @@
       "https://www.dribbble.com",
       "https://www.clubhouse.com",
       "https://www.medium.com",
-      "https://mix.com",
+      "https://mix.com"
     ];
 
     const container = document.getElementById("buttonContainer");
     const buttons = [];
+    let visibleCount = 4;
 
-    async function initButtons() {
-      let visibleCount = 0;
-      for (let i = 0; i < links.length; i++) {
+    const userId = crypto.randomUUID(); // Or use your own UID logic
+
+    db.collection("downloadClicks").doc(userId).get().then(doc => {
+      const data = doc.exists ? doc.data() : {};
+
+      links.forEach((link, index) => {
         const btn = document.createElement("button");
-        btn.textContent = `Download Link ${i + 1}`;
+        btn.textContent = `Download Link ${index + 1}`;
         btn.className = "download-button";
-        btn.dataset.index = i;
 
-        const clickCount = (await localforage.getItem(`btn${i}_clicks`)) || 0;
-        const isHidden = (await localforage.getItem(`btn${i}_hidden`)) === true;
+        let clickCount = data[`link${index}`] || 0;
+        btn.dataset.clickCount = clickCount;
 
-        if (!isHidden && visibleCount < 4) {
+        if (clickCount < 5 && visibleCount > 0) {
           btn.classList.add("visible");
-          visibleCount++;
+          visibleCount--;
         }
 
-        if (isHidden || clickCount >= 5) {
-          btn.disabled = true;
-          btn.style.display = "none";
-        }
-
-        btn.onclick = async function () {
-          let count = (await localforage.getItem(`btn${i}_clicks`)) || 0;
+        btn.onclick = function () {
+          let count = parseInt(this.dataset.clickCount);
           count++;
-          await localforage.setItem(`btn${i}_clicks`, count);
+          this.dataset.clickCount = count;
+
+          db.collection("downloadClicks").doc(userId).set({
+            [`link${index}`]: count
+          }, { merge: true });
 
           if (count >= 5) {
-            await localforage.setItem(`btn${i}_hidden`, true);
             this.classList.remove("visible");
             this.disabled = true;
             this.style.display = "none";
 
-            // Show next hidden button
-            for (let j = 0; j < buttons.length; j++) {
-              const hidden = (await localforage.getItem(`btn${j}_hidden`)) === true;
-              if (!buttons[j].classList.contains("visible") && !hidden) {
-                buttons[j].classList.add("visible");
+            for (let i = 0; i < buttons.length; i++) {
+              if (!buttons[i].classList.contains("visible") && parseInt(buttons[i].dataset.clickCount) < 5) {
+                buttons[i].classList.add("visible");
                 break;
               }
             }
           } else {
-            window.open(links[i], '_blank');
+            window.open(link, '_blank');
           }
         };
 
         container.appendChild(btn);
         buttons.push(btn);
-      }
-    }
-
-    initButtons();
+      });
+    });
   </script>
 </body>
 </html>
